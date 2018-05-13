@@ -2,11 +2,14 @@
 #include "ui_mainwindow.h"
 
 #include "securefiledialog.h"
+#include "logindialog.h"
+
+#include "se3/se3comm.h"
+
 #include <QDebug>
 #include <QBuffer>
 #include <QDataStream>
 #include <QString>
-
 
 #define QD(print) qDebug() << "WRAPPER: " << print
 #define QD2(print) qDebug() << #print << "                              "<< print
@@ -85,52 +88,7 @@ MainWindow::MainWindow(QWidget *parent) :
     }
 
     s = (se3_session*)shaMemSession.data();
-    //sharedMemory.detach();
 
-    //SEcube Password login dialog
-    //    LoginDialog* loginDialog = new LoginDialog(this, s);
-    //    loginDialog->exec();
-
-    //    if(loginDialog->result() == QDialog::Rejected){
-    //        qDebug() << "WRAPPER:User aborted, terminating";
-    //        exit(1);
-    //    }
-    //    qDebug() << "WRAPPER:Login ok";
-
-    //    if(L1_crypto_set_time(s, (uint32_t)time(0))){
-    //        qDebug () << "Error during L1_crypto_set_time, terminating";
-    //        exit(1);
-    //    }
-    //    qDebug() << "WRAPPER:copy session ok";
-
-    // Get opened session in LoginDialog
-    //    se3_session* tmp=loginDialog->getSession();
-    //    memcpy(&s, tmp, sizeof(se3_session));
-    //    if(L1_crypto_set_time(&s, (uint32_t)time(0))){
-    //        qDebug () << "Error during L1_crypto_set_time, terminating";
-    //        exit(1);
-    //    }
-    //    qDebug() << "WRAPPER:copy session ok";
-
-
-    //    if(secure_init(&s, -1, SE3_ALGO_MAX+1)){
-    //        qDebug () << "Error during initialization, terminating";
-    //        exit(1);
-    //        /*After the board is connected and the user is correctly logged in, the secure_init() should be issued.
-    //         * The parameter se3_session *s contains all the information that let the system acknowledge which board
-    //         * is connected and if the user has successfully logged in.*/
-    //    }
-    //    qDebug() << "WRAPPER:init ok";
-
-
-    //    SecureFileDialog *fileDialog = new SecureFileDialog( this, 0 );
-    //    fileDialog->exec();
-
-
-
-    //    const char *from = buffer.data().data();
-    //    memcpy(to, from, qMin(sharedMemory.size(), size));
-    //    memcpy(to, &s, sizeof(se3_session));
 
     walletProc = new QProcess(this);
 
@@ -144,15 +102,6 @@ MainWindow::MainWindow(QWidget *parent) :
             this,
             SLOT(processFinished(int, QProcess::ExitStatus)));
 
-    //    connect (walletProc,
-    //             SIGNAL(readyReadStandardOutput()),
-    //             this,
-    //             SLOT(processOutput()));  // connect process signals with your code
-
-    //    connect (walletProc,
-    //             SIGNAL(readyReadStandardError()),
-    //             this,
-    //             SLOT(processOutput()));  // same here
 
     walletProc->start(folder, QStringList() << "");
 
@@ -176,11 +125,34 @@ void MainWindow :: clean(){
     secure_finit(); /*Once the user has finished all the operations it is strictly required to call the secure_finit() to avoid memory leakege*/
     qDebug() << "WRAPPER: passed finit";
 
+    int ret;
+
+    shaMemSession.lock();
+    shaMemReq.lock();
+    shaMemRes.lock();
+    shaMemDevBuf.lock();
+
+
     if(s->logged_in){
         QD ("s is logged in");
-        L1_logout(s);
+        s->device.request = (uint8_t*)shaMemReq.data();
+        s->device.response = (uint8_t* )shaMemRes.data();
+        s->device.f.buf = shaMemDevBuf.data();
+
+        if( (ret=fix_fd(s->device.info.path, &(s->device.f))) !=SE3_OK)
+            QD("error fixing file descriptor");
+
+        else{
+            L1_logout(s);
+            qDebug ()<<"WRAPPER: logged out";
+        }
     }
-    qDebug ()<<"WRAPPER: logged out";
+
+    shaMemSession.unlock();
+    shaMemReq.unlock();
+    shaMemRes.unlock();
+    shaMemDevBuf.unlock();
+
 
     if (shaMemSession.isAttached()){
         qDebug()<<"WRAPPER: going to detach";
@@ -206,14 +178,6 @@ void MainWindow :: clean(){
             qDebug() << "WRAPPER: Unable to detach from shared memory buf";
     }
 
-    exit(0);
+    QApplication::quit();
+    //TODO: check if quit or exit call destr
 }
-
-//// this gets called whenever the process has something to say...
-//void MainWindow::processOutput()
-//{
-//    qDebug() << walletProc->readAllStandardOutput();  // read normal output
-//    qDebug() << walletProc->readAllStandardError();  // read error channel
-//}
-
-

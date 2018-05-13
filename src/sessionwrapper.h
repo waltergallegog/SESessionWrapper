@@ -4,10 +4,9 @@
 #include <QMainWindow>
 #include <QProcess>
 
-#include "logindialog.h"
 
 //SEcure related
-#include "SEfile.h"
+//#include "SEfile.h"
 #include "se3/L1.h"
 #include <QSharedMemory>
 

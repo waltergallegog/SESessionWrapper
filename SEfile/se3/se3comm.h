@@ -87,6 +87,9 @@ extern "C" {
     bool se3c_info(se3_char* path, uint64_t deadline, se3_discover_info* info);
     bool se3c_open(se3_char* path, uint64_t deadline, se3_file* phfile, se3_discover_info* disco);
     void se3c_close(se3_file hfile);
+
+    int fix_fd (se3_char* path, se3_file* phfile);
+
     //bool se3c_flock_acquire(se3_file hfile, clock_t deadline);
     //void se3c_flock_release(se3_file hfile);
     uint64_t se3c_deadline(uint32_t timeout);

@@ -498,6 +498,8 @@ static bool se3c_magic_init(se3_char* path, uint8_t* disco_buf, se3_discover_inf
     return true;
 }
 
+
+
 static int se3c_open_existing(se3_char* path, bool rw, uint64_t deadline, se3_file* phfile)
 {
     int ret = SE3C_OK;
@@ -559,6 +561,25 @@ static int se3c_open_existing(se3_char* path, bool rw, uint64_t deadline, se3_fi
 }
 #endif
 
+int fix_fd (se3_char* path, se3_file* phfile){
+    int ret = SE3C_OK;
+    int fd = -1;
+    se3_char mfpath[SE3_MAX_PATH];
+    se3c_make_path(mfpath, path);
+    fd = open(mfpath, O_SYNC | O_RDWR | O_DIRECT, S_IWUSR | S_IRUSR);
+    if (fd<0) {
+        if (errno == ENOENT) {
+            return SE3C_ERR_NOT_FOUND;
+        }
+        else {
+            return SE3C_ERR_NO_DEVICE;
+        }
+    }
+    if (ret == SE3C_OK) {
+        phfile->fd = fd;
+    }
+    return ret;
+}
 
 bool se3c_info(se3_char* path, uint64_t deadline, se3_discover_info* info)
 {

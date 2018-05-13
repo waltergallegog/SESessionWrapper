@@ -26,7 +26,7 @@ static uint16_t L1_TXRX(se3_session* s, uint16_t cmd, uint16_t cmd_flags, uint16
 	else {
 		memset(s->buf + SE3_REQ1_OFFSET_TOKEN, 0, SE3_L1_TOKEN_SIZE);
 	}
-        SE3_SET16(s->buf, SE3_REQ1_OFFSET_CMD, cmd);
+	SE3_SET16(s->buf, SE3_REQ1_OFFSET_CMD, cmd);
 	SE3_SET16(s->buf, SE3_REQ1_OFFSET_LEN, req_len);
 
 	req_len_padded = req_len;
